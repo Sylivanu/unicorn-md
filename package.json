@@ -51,9 +51,7 @@
         "@StarlightsTeam/Scraper": "github:StarlightsTeam/StarlightsTeam-Scraper",
         "@SumiFX/Scraper": "github:SumiFX/SumiFX-Scraper",
         "@vitalets/google-translate-api": "^9.2.0",
-        "@whiskeysockets/baileys": "npm:@fizzxydev/baileys-pro@8.5.12",
-        "@xct007/frieren-scraper": "^1.0.3",
-        "@xct007/tiktok-scraper": "^1.0.7",
+        "@whiskeysockets/baileys": "^6.7.9",
         "acrcloud": "^1.4.0",
         "api-dylux": "^1.8.3",
         "aptoide-scraper": "^1.0.1",
@@ -117,6 +115,10 @@
         "ytdl-core": "^4.11.5",
         "youtube-yts": "^2.0.0",
         "youtubedl-core": "^4.11.7"
+    },
+    "optionalDependencies": {
+        "@xct007/frieren-scraper": "*",
+        "@xct007/tiktok-scraper": "*"
     },
     "overrides": {
         "cache-manager": "^5.2.2"
