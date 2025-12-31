@@ -4,8 +4,9 @@ RUN git clone https://github.com/Sylivanu/unicorn-md /root/unicorn
 
 WORKDIR /root/unicorn/
 
-RUN npm install --platform=linuxmusl
+# Install with legacy peer deps to handle version conflicts
+RUN npm install --platform=linuxmusl --legacy-peer-deps
 
-EXPOSE 5000
+EXPOSE 3000
 
 CMD ["npm", "start"]
