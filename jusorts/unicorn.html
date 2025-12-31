@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🦄 Unicorn MD - Enchanted Status</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@500;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Comfortaa', cursive;
+            background: linear-gradient(135deg, #ffb6f2, #b6e0ff);
+            color: #3d0066;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+            background-size: 400% 400%;
+            animation: gradientFlow 15s ease infinite;
+        }
+
+        @keyframes gradientFlow {
+            0% {background-position: 0% 50%;}
+            50% {background-position: 100% 50%;}
+            100% {background-position: 0% 50%;}
+        }
+
+        .container {
+            max-width: 560px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 26px;
+            text-align: center;
+            box-shadow: 0 0 25px #ff66c4cc, 0 0 60px #b6e0ffcc;
+            position: relative;
+            animation: floatUp 1.2s ease-out forwards;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(100px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+
+        h1 {
+            font-size: 32px;
+            color: #a900ff;
+            margin-bottom: 25px;
+            background: linear-gradient(45deg, #ff66c4, #a900ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .sparkle {
+            font-size: 28px;
+            animation: sparkle 1.5s infinite alternate;
+            margin-bottom: 15px;
+        }
+
+        @keyframes sparkle {
+            0% { opacity: 0.7; transform: scale(1); }
+            100% { opacity: 1; transform: scale(1.1) rotate(5deg); }
+        }
+
+        .status {
+            font-size: 18px;
+            color: #4b0082;
+            margin-bottom: 15px;
+            animation: fadeIn 1s ease-out forwards;
+        }
+
+        .repo-stats {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #5c007a;
+            animation: fadeIn 1.2s ease-out forwards;
+        }
+
+        .battery-status {
+            font-size: 18px;
+            color: #ff69b4;
+            margin-top: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 1.4s ease-out forwards;
+        }
+
+        .battery-circle {
+            margin-left: 15px;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: 6px solid #ff66c4;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        .loader {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: #7f00ff;
+            font-weight: bold;
+            display: none;
+        }
+
+        .loader.active {
+            display: block;
+        }
+
+        .footer {
+            margin-top: 35px;
+            font-size: 14px;
+            color: #6a0dad;
+            animation: fadeIn 1.6s ease-out forwards;
+        }
+
+        .footer a {
+            color: #ff66c4;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sparkle">✨🦄✨</div>
+        <h1>Unicorn MD - Enchanted Status</h1>
+
+        <div class="status">
+            <span id="silva-status">Unicorn MD is galloping gracefully across galaxies...</span>
+        </div>
+
+        <div class="repo-stats">
+            <span id="repo-forks">Forks: 🌸</span>
+            <span id="repo-stars">Stars: 🌟</span>
+            <span id="repo-users">Users: 🧙‍♂️</span>
+        </div>
+
+        <div class="battery-status">
+            Bot Magic: <span id="battery-percentage">🧚‍♀️ 80%</span>
+            <div class="battery-circle"></div>
+        </div>
+
+        <div class="loader" id="loader">🌈 Channeling Unicorn Energies...</div>
+
+        <div class="footer">
+            <p>Summon the Developer:</p>
+            <a href="https://wa.me/254700143167">🧞 WhatsApp 1</a> | 
+            <a href="https://wa.me/254755257907">WhatsApp 2</a> | 
+            <a href="https://wa.me/254743706010">WhatsApp 3</a>
+        </div>
+    </div>
+
+    <script>
+        const repoUrl = 'https://api.github.com/repos/Sylivanu/unicorn-md';
+
+        async function fetchRepoStats() {
+            document.getElementById('loader').classList.add('active');
+            try {
+                const response = await fetch(repoUrl);
+                const data = await response.json();
+                const forksCount = data.forks_count;
+                document.getElementById('repo-forks').innerText = `Forks: 🪄 ${forksCount}`;
+                document.getElementById('repo-stars').innerText = `Stars: 🌟 ${data.stargazers_count}`;
+                document.getElementById('repo-users').innerText = `Users: 🧙 ${forksCount * 2}`;
+                document.getElementById('loader').classList.remove('active');
+            } catch (error) {
+                console.error('Error fetching repo stats:', error);
+                document.getElementById('repo-forks').innerText = 'Forks: ❌';
+                document.getElementById('repo-stars').innerText = 'Stars: ❌';
+                document.getElementById('repo-users').innerText = 'Users: ❌';
+                document.getElementById('loader').classList.remove('active');
+            }
+        }
+
+        fetchRepoStats();
+
+        setInterval(() => {
+            const batteryPercentage = Math.floor(Math.random() * 100);
+            document.getElementById('battery-percentage').innerText = `🧚‍♀️ ${batteryPercentage}%`;
+        }, 5000);
+    </script>
+</body>
+</html>
