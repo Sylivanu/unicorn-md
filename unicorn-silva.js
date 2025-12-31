@@ -2,14 +2,15 @@ process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '1'
 import './config.js'
 
 import dotenv from 'dotenv'
-import { existsSync, readFileSync, readdirSync, unlinkSync, watch } from 'fs'
+import { existsSync, readFileSync, readdirSync, unlinkSync, watch, mkdirSync, writeFileSync } from 'fs'
 import { createRequire } from 'module'
 import path, { join } from 'path'
 import { platform } from 'process'
 import { fileURLToPath, pathToFileURL } from 'url'
 import * as ws from 'ws'
-import processTxtAndSaveCredentials from './lib/makesession.js'
+import zlib from 'zlib'
 import clearTmp from './lib/tempclear.js'
+
 global.__filename = function filename(pathURL = import.meta.url, rmPrefix = platform !== 'win32') {
   return rmPrefix
     ? /file:\/\/\//.test(pathURL)
@@ -23,7 +24,6 @@ global.__dirname = function dirname(pathURL) {
 global.__require = function require(dir = import.meta.url) {
   return createRequire(dir)
 }
-global.gurubot = 'https://www.guruapi.tech/api'
 
 import chalk from 'chalk'
 import { spawn } from 'child_process'
@@ -57,6 +57,67 @@ import readline from 'readline'
 
 dotenv.config()
 
+// ============================== 
+// 🔐 SESSION MANAGEMENT 
+// ============================== 
+const botLogger = {
+  log: (type, message) => {
+    const timestamp = new Date().toLocaleString()
+    console.log(`[${timestamp}] [${type}] ${message}`)
+  }
+}
+
+async function loadSession() {
+  try {
+    const credsPath = './session/creds.json'
+    
+    if (!existsSync('./session')) {
+      mkdirSync('./session', { recursive: true })
+    }
+    
+    // Clean old sessions if needed
+    if (existsSync(credsPath)) {
+      try {
+        // Check if session is valid before deleting
+        const credsData = JSON.parse(readFileSync(credsPath, 'utf8'))
+        if (!credsData || !credsData.me) {
+          unlinkSync(credsPath)
+          botLogger.log('INFO', "♻️ Invalid session removed")
+        }
+      } catch (e) {
+        // If can't parse, remove it
+        try {
+          unlinkSync(credsPath)
+          botLogger.log('INFO', "♻️ Corrupted session removed")
+        } catch (err) {
+          // Ignore error
+        }
+      }
+    }
+    
+    if (!process.env.SESSION_ID || typeof process.env.SESSION_ID !== 'string') {
+      botLogger.log('WARNING', "SESSION_ID missing, using QR")
+      return false
+    }
+    
+    const [header, b64data] = process.env.SESSION_ID.split('~')
+    if (header !== "Silva" || !b64data) {
+      botLogger.log('ERROR', "Invalid session format")
+      return false
+    }
+    
+    const cleanB64 = b64data.replace(/\.\.\./g, '')
+    const compressedData = Buffer.from(cleanB64, 'base64')
+    const decompressedData = zlib.gunzipSync(compressedData)
+    writeFileSync(credsPath, decompressedData, "utf8")
+    botLogger.log('SUCCESS', "✅ Session loaded successfully")
+    return true
+  } catch (e) {
+    botLogger.log('ERROR', "Session Error: " + e.message)
+    return false
+  }
+}
+
 async function main() {
   const txt = process.env.SESSION_ID
 
@@ -66,8 +127,8 @@ async function main() {
   }
 
   try {
-    await processTxtAndSaveCredentials(txt)
-    console.log('processTxtAndSaveCredentials completed.')
+    await loadSession()
+    console.log('Session loading completed.')
   } catch (error) {
     console.error('Error:', error)
   }
@@ -77,40 +138,52 @@ main()
 
 await delay(1000 * 10)
 
-async function gandu() {
+// ============================== 
+// 🔐 AUTHOR VERIFICATION 
+// ============================== 
+async function verifyAuthor() {
   try {
     const packageJson = readFileSync('package.json', 'utf8')
     const packageData = JSON.parse(packageJson)
-    const gnome = packageData.author && packageData.author.name
+    const authorName = packageData.author && packageData.author.name
 
-    if (!gnome) {
-      console.log('LOl')
+    if (!authorName) {
+      console.log(chalk.red('❌ Author information missing in package.json'))
       process.exit(1)
     }
 
-    const lund = Buffer.from('Z3VydQ==', 'base64').toString()
-    const lawde = Buffer.from(
-      `Q2hlYXAgQ29weSBPZiBHdXJ1IEJvdCBGb3VuZCAsIFBsZWFzZSBVc2UgdGhlIE9yaWdpbmFsIEd1cnUgQm90IEZyb20gaHR0cHM6Ly9naXRodWIuY29tL0d1cnUzMjIvR1VSVS1CT1QK`,
+    // Expected author name (silva)
+    const expectedAuthor = Buffer.from('c2lsdmE=', 'base64').toString()
+    
+    // Warning message for unauthorized copies
+    const unauthorizedMessage = Buffer.from(
+      'VW5hdXRob3JpemVkIGNvcHkgb2YgVW5pY29ybiBNRCBkZXRlY3RlZC4gUGxlYXNlIHVzZSB0aGUgb2ZmaWNpYWwgdmVyc2lvbiBmcm9tIFNpbHZhIFRlY2ggSW5jLg==',
       'base64'
     ).toString()
-    const endi = Buffer.from(
-      `U2VjdXJpdHkgY2hlY2sgcGFzc2VkLCBUaGFua3MgRm9yIHVzaW5nIEd1cnUgTXVsdGlEZXZpY2U=`,
+    
+    // Success message
+    const authorizedMessage = Buffer.from(
+      'U2VjdXJpdHkgY2hlY2sgcGFzc2VkIC0gVW5pY29ybiBNRCBieSBTaWx2YSBUZWNoIEluYw==',
       'base64'
     ).toString()
 
-    if (gnome && gnome.trim().toLowerCase() !== lund.toLowerCase()) {
-      console.log(lawde)
+    // Check if author matches
+    if (authorName && authorName.trim().toLowerCase() !== expectedAuthor.toLowerCase()) {
+      console.log(chalk.red('\n' + '='.repeat(60)))
+      console.log(chalk.red(unauthorizedMessage))
+      console.log(chalk.red('='.repeat(60) + '\n'))
       process.exit(1)
     } else {
-      console.log(`${endi}`)
-      console.log(chalk.bgBlack(chalk.redBright('Starting unicorn md bot')))
+      console.log(chalk.green('\n✅ ' + authorizedMessage))
+      console.log(chalk.bgBlack(chalk.cyan('🦄 Starting Unicorn MD Bot...\n')))
     }
   } catch (error) {
-    console.error('Error:', error)
+    console.error(chalk.red('Error during author verification:'), error)
+    process.exit(1)
   }
 }
 
-gandu()
+verifyAuthor()
 
 const pairingCode = !!global.pairingNumber || process.argv.includes('--pairing-code')
 const useQr = process.argv.includes('--qr')
@@ -124,7 +197,8 @@ logger.level = 'fatal'
 const store = useStore ? makeInMemoryStore({ logger }) : undefined
 store?.readFromFile('./session.json')
 
-setInterval(() => {
+// FIX: Clear interval reference for cleanup
+let storeInterval = setInterval(() => {
   store?.writeToFile('./session.json')
 }, 10000 * 6)
 
@@ -187,14 +261,14 @@ global.DATABASE = global.db
 
 global.loadDatabase = async function loadDatabase() {
   if (global.db.READ)
-    return new Promise(resolve =>
-      setInterval(async function () {
+    return new Promise(resolve => {
+      const checkInterval = setInterval(async function () {
         if (!global.db.READ) {
-          clearInterval(this)
+          clearInterval(checkInterval)
           resolve(global.db.data == null ? global.loadDatabase() : global.db.data)
         }
       }, 1 * 1000)
-    )
+    })
   if (global.db.data !== null) return
   global.db.READ = true
   await global.db.read().catch(console.error)
@@ -213,7 +287,6 @@ global.loadDatabase = async function loadDatabase() {
 loadDatabase()
 global.authFolder = `session`
 const { state, saveCreds } = await useMultiFileAuthState(global.authFolder)
-//let { version, isLatest } = await fetchLatestWaWebVersion()
 
 const connectionOptions = {
   version: [2, 3000, 1015901307],
@@ -311,21 +384,26 @@ if (pairingCode && !conn.authState.creds.registered) {
 
 conn.logger.info('\nUnicorn is waiting Waiting For Login\n')
 
+// FIX: Store interval reference for cleanup
+let dbInterval
 if (!opts['test']) {
   if (global.db) {
-    setInterval(async () => {
+    dbInterval = setInterval(async () => {
       if (global.db.data) await global.db.write()
-      if (opts['autocleartmp'] && (global.support || {}).find)
-        (tmp = [os.tmpdir(), 'tmp']),
-          tmp.forEach(filename =>
-            cp.spawn('find', [filename, '-amin', '3', '-type', 'f', '-delete'])
-          )
+      if (opts['autocleartmp'] && (global.support || {}).find) {
+        const tmp = [require('os').tmpdir(), 'tmp']
+        tmp.forEach(filename =>
+          require('child_process').spawn('find', [filename, '-amin', '3', '-type', 'f', '-delete'])
+        )
+      }
     }, 30 * 1000)
   }
 }
 
 if (opts['server']) (await import('./server.js')).default(global.conn, PORT)
 
+// FIX: Store cleanup timeout reference
+let cleanupTimeout
 function runCleanup() {
   clearTmp()
     .then(() => {
@@ -336,7 +414,7 @@ function runCleanup() {
     })
     .finally(() => {
       // 2 minutes
-      setTimeout(runCleanup, 1000 * 60 * 2)
+      cleanupTimeout = setTimeout(runCleanup, 1000 * 60 * 2)
     })
 }
 
@@ -382,7 +460,7 @@ async function connectionUpdate(update) {
     conn.logger.info(chalk.yellow('\nUnicorn is Logging in....'))
   }
 
- if (connection === 'open') {
+  if (connection === 'open') {
     const { jid, name } = conn.user
     const msg = `🦄 *Unicorn MD is Live!*\n\nHello ${name}, am Unicorn thank you for summoning me✅\n\n> THIS IS A SILVA TECH INC BOT\n\n📅 Launched: 1st May 2025\n🔧 Org: Silva Tech Inc.\n\n📢 Updates:\nhttps://whatsapp.com/channel/0029VaAkETLLY6d8qhLmZt2v\n\n— Sylivanus Momanyi`
 
@@ -396,7 +474,14 @@ async function connectionUpdate(update) {
   }
 }
 
-process.on('uncaughtException', console.error)
+// FIX: Add proper error handling
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error)
+})
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason)
+})
 
 let isInit = true
 let handler = await import('./handler.js')
@@ -405,7 +490,7 @@ global.reloadHandler = async function (restatConn) {
     const Handler = await import(`./handler.js?update=${Date.now()}`).catch(console.error)
     if (Object.keys(Handler || {}).length) handler = Handler
   } catch (error) {
-    console.error
+    console.error('Handler reload error:', error)
   }
   if (restatConn) {
     const oldChats = global.conn.chats
@@ -451,18 +536,6 @@ global.reloadHandler = async function (restatConn) {
   conn.connectionUpdate = connectionUpdate.bind(global.conn)
   conn.credsUpdate = saveCreds.bind(global.conn, true)
 
-  const currentDateTime = new Date()
-  const messageDateTime = new Date(conn.ev)
-  if (currentDateTime >= messageDateTime) {
-    const chats = Object.entries(conn.chats)
-      .filter(([jid, chat]) => !jid.endsWith('@g.us') && chat.isChats)
-      .map(v => v[0])
-  } else {
-    const chats = Object.entries(conn.chats)
-      .filter(([jid, chat]) => !jid.endsWith('@g.us') && chat.isChats)
-      .map(v => v[0])
-  }
-
   conn.ev.on('messages.upsert', conn.handler)
   conn.ev.on('messages.update', conn.pollUpdate)
   conn.ev.on('group-participants.update', conn.participantsUpdate)
@@ -494,6 +567,8 @@ filesInit()
   .then(_ => Object.keys(global.plugins))
   .catch(console.error)
 
+// FIX: Store watcher reference for cleanup
+let pluginWatcher
 global.reload = async (_ev, filename) => {
   if (pluginFilter(filename)) {
     const dir = global.__filename(join(pluginFolder, filename), true)
@@ -524,8 +599,9 @@ global.reload = async (_ev, filename) => {
   }
 }
 Object.freeze(global.reload)
-watch(pluginFolder, global.reload)
+pluginWatcher = watch(pluginFolder, global.reload)
 await global.reloadHandler()
+
 async function _quickTest() {
   const test = await Promise.all(
     [
@@ -573,14 +649,60 @@ async function _quickTest() {
   Object.freeze(global.support)
 }
 
+// FIX: Store session cleanup interval reference
+let sessionCleanupInterval
 async function saafsafai() {
-  if (stopped === 'close' || !conn || !conn.user) return
+  if (global.stopped === 'close' || !conn || !conn.user) return
   clearsession()
   console.log(chalk.cyanBright('\nUnicorn 🦄 Stored Sessions Cleared'))
 }
 
-setInterval(saafsafai, 10 * 60 * 1000)
+sessionCleanupInterval = setInterval(saafsafai, 10 * 60 * 1000)
 
 _quickTest().catch(console.error)
 
-//..
+// FIX: Add graceful shutdown handler
+async function gracefulShutdown() {
+  console.log('\n🦄 Shutting down gracefully...')
+  
+  // Clear all intervals
+  if (storeInterval) clearInterval(storeInterval)
+  if (dbInterval) clearInterval(dbInterval)
+  if (sessionCleanupInterval) clearInterval(sessionCleanupInterval)
+  if (cleanupTimeout) clearTimeout(cleanupTimeout)
+  
+  // Close watcher
+  if (pluginWatcher) pluginWatcher.close()
+  
+  // Close readline
+  if (rl) rl.close()
+  
+  // Close database connection
+  if (global.db) {
+    try {
+      await global.db.write()
+    } catch (e) {
+      console.error('Error saving database:', e)
+    }
+  }
+  
+  // Close WebSocket connection
+  if (global.conn?.ws) {
+    try {
+      global.conn.ws.close()
+    } catch (e) {
+      console.error('Error closing connection:', e)
+    }
+  }
+  
+  // Remove all event listeners
+  if (global.conn?.ev) {
+    global.conn.ev.removeAllListeners()
+  }
+  
+  console.log('✅ Cleanup complete')
+  process.exit(0)
+}
+
+process.on('SIGTERM', gracefulShutdown)
+process.on('SIGINT', gracefulShutdown)
