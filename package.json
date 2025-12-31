@@ -121,7 +121,8 @@
         "@xct007/tiktok-scraper": "*"
     },
     "overrides": {
-        "cache-manager": "^5.2.2"
+        "cache-manager": "^5.2.2",
+        "jimp": "^0.16.1"
     },
     "devDependencies": {
         "prettier": "^3.2.5"
