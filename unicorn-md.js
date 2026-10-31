@@ -108,8 +108,8 @@ async function start(file) {
     console.log(chalk.yellow(`unicorn Installed ${files.length} plugins`))
 
     try {
-      const { default: baileys } = await import('@whiskeysockets/baileys')
-      const version = (await baileys.fetchLatestBaileysVersion()).version
+      const { fetchLatestBaileysVersion } = await import('@whiskeysockets/baileys')
+      const version = (await fetchLatestBaileysVersion()).version
       console.log(chalk.yellow(`Using Baileys version ${version}`))
     } catch (e) {
       console.error(chalk.red(' Baileys library is not installed'))

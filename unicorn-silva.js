@@ -54,17 +54,12 @@ import { makeWASocket, protoType, serialize } from './lib/simple.js'
 const {
   DisconnectReason,
   useMultiFileAuthState,
-  MessageRetryMap,
-  fetchLatestWaWebVersion,
   makeCacheableSignalKeyStore,
   makeInMemoryStore,
   proto,
   delay,
   jidNormalizedUser,
-  PHONENUMBER_MCC,
-} = await (
-  await import('@whiskeysockets/baileys')
-).default
+} = await import('@whiskeysockets/baileys')
 
 import readline from 'readline'
 
@@ -361,12 +356,12 @@ global.conn = makeWASocket(connectionOptions)
 conn.isInit = false
 store?.bind(conn.ev)
 
-if (pairingCode && !conn.authState.creds.registered) {
-  let phoneNumber
-  if (!!global.pairingNumber) {
-    phoneNumber = global.pairingNumber.replace(/[^0-9]/g, '')
+  if (pairingCode && !conn.authState.creds.registered) {
+    let phoneNumber
+    if (!!global.pairingNumber) {
+      phoneNumber = global.pairingNumber.replace(/[^0-9]/g, '')
 
-    if (!Object.keys(PHONENUMBER_MCC).some(v => phoneNumber.startsWith(v))) {
+    if (!/^[1-9]\d{7,14}$/.test(phoneNumber)) {
       console.log(
         chalk.bgBlack(chalk.redBright("Start with your country's WhatsApp code, Example : 254xxx"))
       )
@@ -378,7 +373,7 @@ if (pairingCode && !conn.authState.creds.registered) {
     )
     phoneNumber = phoneNumber.replace(/[^0-9]/g, '')
 
-    if (!Object.keys(PHONENUMBER_MCC).some(v => phoneNumber.startsWith(v))) {
+    if (!/^[1-9]\d{7,14}$/.test(phoneNumber)) {
       console.log(
         chalk.bgBlack(chalk.redBright("Start with your country's WhatsApp code, Example : 254xxx"))
       )

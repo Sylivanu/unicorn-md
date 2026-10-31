@@ -51,7 +51,7 @@
         "@StarlightsTeam/Scraper": "github:StarlightsTeam/StarlightsTeam-Scraper",
         "@SumiFX/Scraper": "github:SumiFX/SumiFX-Scraper",
         "@vitalets/google-translate-api": "^9.2.0",
-        "@whiskeysockets/baileys": "^6.7.9",
+        "@whiskeysockets/baileys": "6.7.9",
         "acrcloud": "^1.4.0",
         "api-dylux": "^1.8.3",
         "aptoide-scraper": "^1.0.1",
