@@ -212,8 +212,14 @@ const useStore = true
 const MAIN_LOGGER = pino({ timestamp: () => `,"time":"${new Date().toJSON()}"` })
 const logger = MAIN_LOGGER.child({})
 logger.level = 'fatal'
-
-const store = useStore ? makeInMemoryStore({ logger }) : undefined
+const createStore = makeInMemoryStore || (() => ({
+  contacts: {},
+  bind() {},
+  readFromFile() {},
+  writeToFile() {},
+  async loadMessage() { return undefined },
+}))
+const store = useStore ? createStore({ logger }) : undefined
 store?.readFromFile('./session.json')
 
 let storeInterval = setInterval(() => {
@@ -326,7 +332,7 @@ const connectionOptions = {
   generateHighQualityLinkPreview: true,
   getMessage: async key => {
     let jid = jidNormalizedUser(key.remoteJid)
-    let msg = await store.loadMessage(jid, key.id)
+    let msg = await store?.loadMessage(jid, key.id)
     return msg?.message || ''
   },
   patchMessageBeforeSending: message => {
