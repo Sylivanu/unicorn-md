@@ -35,13 +35,21 @@ let handler = async (message, { conn, text, usedPrefix, command }) => {
     }
   };
 
-  // 🔊 Audio reply with branding
+  const audioResponse = await axios.get(audioUrl, {
+    responseType: 'arraybuffer',
+    timeout: 60000,
+    maxContentLength: 25 * 1024 * 1024,
+  })
+  const contentType = String(audioResponse.headers['content-type'] || '').toLowerCase()
+  if (contentType.includes('application/json') || contentType.includes('text/html')) {
+    return message.reply('🦄 Sorry, the audio provider returned invalid media.')
+  }
+
+  // 🔊 Send a supported music file, not an MP3 URL marked as a voice note.
   let audioMessage = {
-    audio: { url: audioUrl },
-    mimetype: "audio/mpeg",
-    ptt: true,
-    waveform: [90, 30, 90, 30, 90, 30, 90],
-    fileName: "unicorn",
+    audio: Buffer.from(audioResponse.data),
+    mimetype: contentType.startsWith('audio/') ? contentType.split(';')[0] : 'audio/mpeg',
+    ptt: false,
     contextInfo: {
       mentionedJid: [message.sender],
       externalAdReply: {

@@ -37,6 +37,7 @@ let handler = async (m, { conn, text }) => {
 
     const data = response.data.result || response.data;
     const audioUrl = data.downloadUrl || data.url;
+    if (!audioUrl) throw new Error('Audio provider returned no download URL')
     const songData = {
       title: data.title || video.title,
       artist: data.author || video.author.name,
@@ -69,27 +70,22 @@ let handler = async (m, { conn, text }) => {
       }
     });
 
-    // 🎧 Send audio file
-    await conn.sendMessage(m.chat, {
-      audio: { url: audioUrl },
-      mimetype: "audio/mp4",
-      contextInfo: {
-        mentionedJid: [m.sender],
-        forwardingScore: 999,
-        isForwarded: true,
-        forwardedNewsletterMessageInfo: {
-          newsletterJid: '120363200367779016@newsletter',
-          newsletterName: 'Unicorn MD • 🎵 Music Magic',
-          serverMessageId: 143
-        }
-      }
-    });
+    // Download the media first so WhatsApp receives a real audio payload.
+    const audioResponse = await axios.get(audioUrl, {
+      responseType: 'arraybuffer',
+      timeout: 60000,
+      maxContentLength: 25 * 1024 * 1024,
+    })
+    const contentType = String(audioResponse.headers['content-type'] || '').toLowerCase()
+    if (contentType.includes('application/json') || contentType.includes('text/html')) {
+      throw new Error(`Audio provider returned ${contentType || 'an invalid media response'}`)
+    }
 
-    // 📄 Send MP3 as document
+    // 🎧 Send one supported audio file instead of an audio URL plus a document copy.
     await conn.sendMessage(m.chat, {
-      document: { url: audioUrl },
-      mimetype: "audio/mp3",
-      fileName: `${songData.title.replace(/[^a-zA-Z0-9 ]/g, "")}.mp3`,
+      audio: Buffer.from(audioResponse.data),
+      mimetype: contentType.startsWith('audio/') ? contentType.split(';')[0] : 'audio/mpeg',
+      ptt: false,
       contextInfo: {
         mentionedJid: [m.sender],
         forwardingScore: 999,

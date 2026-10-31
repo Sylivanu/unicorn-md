@@ -24,6 +24,7 @@ let handler = async (m, { conn, text, botname }) => {
 
         if (data.status === 200 || data.success) {
           let audioUrl = data.result?.downloadUrl || data.url
+          if (!audioUrl) throw new Error('Audio provider returned no download URL')
           let songData = {
             title: data.result?.title || video.title,
             artist: data.result?.author || video.author.name,
@@ -48,23 +49,22 @@ let handler = async (m, { conn, text, botname }) => {
 
           await m.reply("📤✨ Sending enchanted audio...")
 
+          const audioResponse = await axios.get(audioUrl, {
+            responseType: 'arraybuffer',
+            timeout: 60000,
+            maxContentLength: 25 * 1024 * 1024,
+          })
+          const contentType = String(audioResponse.headers['content-type'] || '').toLowerCase()
+          if (contentType.includes('application/json') || contentType.includes('text/html')) {
+            throw new Error(`Audio provider returned ${contentType || 'an invalid media response'}`)
+          }
+
           await conn.sendMessage(
             m.chat,
             {
-              audio: { url: audioUrl },
-              mimetype: "audio/mp4",
-            },
-            { quoted: m }
-          )
-
-          await m.reply("📄✨ Attaching as magical document...")
-
-          await conn.sendMessage(
-            m.chat,
-            {
-              document: { url: audioUrl },
-              mimetype: "audio/mp3",
-              fileName: `${songData.title.replace(/[^a-zA-Z0-9 ]/g, "")}.mp3`,
+              audio: Buffer.from(audioResponse.data),
+              mimetype: contentType.startsWith('audio/') ? contentType.split(';')[0] : 'audio/mpeg',
+              ptt: false,
             },
             { quoted: m }
           )

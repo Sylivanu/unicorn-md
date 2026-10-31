@@ -93,8 +93,10 @@ async function loadSession() {
           unlinkSync(credsPath)
           botLogger.log('INFO', "♻️ Invalid session removed")
         } else {
-          botLogger.log('INFO', "✅ Valid session found")
-          return true
+          if (!process.env.SESSION_ID) {
+            botLogger.log('INFO', "✅ Valid session found")
+            return true
+          }
         }
       } catch (e) {
         try {
