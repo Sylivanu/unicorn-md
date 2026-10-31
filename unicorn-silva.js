@@ -57,6 +57,7 @@ const {
   useMultiFileAuthState,
   makeCacheableSignalKeyStore,
   makeInMemoryStore,
+  fetchLatestBaileysVersion,
   delay,
   jidNormalizedUser,
 } = baileys
@@ -302,9 +303,10 @@ loadDatabase()
 
 global.authFolder = `session`
 const { state, saveCreds } = await useMultiFileAuthState(global.authFolder)
-
+const { version: baileysVersion } = await fetchLatestBaileysVersion()
+console.log(`Using current WhatsApp Web version: ${baileysVersion.join('.')}`)
 const connectionOptions = {
-  version: [2, 3000, 1015901307],
+  version: baileysVersion,
   logger: Pino({
     level: 'fatal',
   }),
