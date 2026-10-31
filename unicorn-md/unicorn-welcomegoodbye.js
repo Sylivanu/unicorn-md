@@ -15,7 +15,7 @@ global.conn.ev.on('group-participants.update', async (update) => {
       const groupMemberCount = metadata.participants.length;
       const username = await conn.getName(user);
       const profilePic = await conn.profilePictureUrl(user, 'image')
-        .catch(() => 'https://i.imgur.com/unicorn_default.jpg');
+        .catch(() => null);
 
       // 🧚‍♀️ Welcome Message
       if (update.action === 'add' && process.env.WELCOME_MSG === 'true') {
@@ -29,7 +29,7 @@ Roll out the sparkle carpet, fam! 💫💖
         `.trim();
 
         await conn.sendMessage(update.id, {
-          image: { url: profilePic },
+          ...(profilePic ? { image: { url: profilePic } } : {}),
           caption: welcomeMessage,
           contextInfo: {
             mentionedJid: [user],
@@ -56,7 +56,7 @@ Their journey continues beyond the magical gate. 🌠
         `.trim();
 
         await conn.sendMessage(update.id, {
-          image: { url: profilePic },
+          ...(profilePic ? { image: { url: profilePic } } : {}),
           caption: goodbyeMessage,
           contextInfo: {
             mentionedJid: [user],

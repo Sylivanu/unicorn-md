@@ -24,9 +24,12 @@ const delay = ms =>
  * Handle messages upsert
  * @param {import("@whiskeysockets/baileys").BaileysEventMap<unknown>["messages.upsert"]} groupsUpdate
  */
-const { getAggregateVotesInPollMessage, makeInMemoryStore } = await (
-  await import('@whiskeysockets/baileys')
-).default
+const baileys = await import('@whiskeysockets/baileys')
+const { getAggregateVotesInPollMessage } = baileys
+const makeInMemoryStore = baileys.makeInMemoryStore || baileys.default?.makeInMemoryStore
+if (typeof makeInMemoryStore !== 'function') {
+  throw new Error('Baileys makeInMemoryStore export is unavailable')
+}
 const store = makeInMemoryStore({
   logger: Pino().child({
     level: 'fatal',
