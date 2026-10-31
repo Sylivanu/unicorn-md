@@ -51,15 +51,16 @@ import { format } from 'util'
 import yargs from 'yargs'
 import { makeWASocket, protoType, serialize } from './lib/simple.js'
 
+const baileys = await import('@whiskeysockets/baileys')
 const {
   DisconnectReason,
   useMultiFileAuthState,
   makeCacheableSignalKeyStore,
   makeInMemoryStore,
-  proto,
   delay,
   jidNormalizedUser,
-} = await import('@whiskeysockets/baileys')
+} = baileys
+const proto = baileys.proto || baileys.default?.proto
 
 import readline from 'readline'
 
