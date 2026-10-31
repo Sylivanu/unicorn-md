@@ -81,14 +81,11 @@ async function start(file) {
 
   p.on('exit', code => {
     isRunning = false
-    console.error(chalk.red(`❌Exited with code: ${code}`))
+    if (code !== 0) console.error(chalk.red(`❌ [child] Exited with code: ${code}`))
 
     if (code === 0) return
-
-    fs.watchFile(args[0], () => {
-      fs.unwatchFile(args[0])
-      start('unicorn-silva.js')
-    })
+    console.error(chalk.yellow('♻️ Restarting bot child in 5 seconds...'))
+    setTimeout(() => start('unicorn-silva.js'), 5000)
   })
 
   p.on('error', err => {
@@ -119,13 +116,6 @@ async function start(file) {
 
 start('unicorn-silva.js')
 
-process.on('unhandledRejection', () => {
-  console.error(chalk.red(`Unhandled promise rejection. Bot will restart...`))
-  start('unicorn-silva.js')
-})
-
-process.on('exit', code => {
-  console.error(chalk.red(`Exited with code: ${code}`))
-  console.error(chalk.red(`Bot will restart...`))
-  start('unicorn-silva.js')
+process.on('unhandledRejection', reason => {
+  console.error(chalk.red('❌ [supervisor] Unhandled promise rejection:'), reason?.stack || reason)
 })

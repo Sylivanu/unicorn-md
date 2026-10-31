@@ -39,7 +39,9 @@ const store = makeInMemoryStore({
 export async function handler(chatUpdate) {
   this.msgqueque = this.msgqueque || []
   if (!chatUpdate) return
-  this.pushMessage(chatUpdate.messages).catch(console.error)
+  this.pushMessage(chatUpdate.messages).catch(error =>
+    console.error('[handler] Message processing failed:', error.stack || error)
+  )
   let m = chatUpdate.messages[chatUpdate.messages.length - 1]
   if (!m) return
   if (global.db.data == null) await global.loadDatabase()
@@ -176,7 +178,7 @@ export async function handler(chatUpdate) {
           status: 0,
         }
     } catch (e) {
-      console.error(e)
+      console.error('[handler] Settings initialization failed:', e.stack || e)
     }
     if (opts['nyimak']) return
     if (opts['pconly'] && m.chat.endsWith('g.us')) return
@@ -203,9 +205,9 @@ export async function handler(chatUpdate) {
         time = 1000 * 5
       const previousID = queque[queque.length - 1]
       queque.push(m.id || m.key.id)
-      setInterval(async function () {
-        if (queque.indexOf(previousID) === -1) clearInterval(this)
-        await delay(time)
+      setTimeout(() => {
+        const index = queque.indexOf(previousID)
+        if (index !== -1) queque.splice(index, 1)
       }, time)
     }
     if (process.env.MODE && process.env.MODE.toLowerCase() === 'private' && !(isROwner || isOwner))
@@ -456,7 +458,7 @@ export async function handler(chatUpdate) {
             try {
               await plugin.after.call(this, m, extra)
             } catch (e) {
-              console.error(e)
+              console.error('[handler] Plugin after() failed:', e.stack || e)
             }
           }
           if (m.credit) m.reply(`You used *${+m.credit}*`)
@@ -465,7 +467,7 @@ export async function handler(chatUpdate) {
       }
     }
   } catch (e) {
-    console.error(e)
+    console.error('[handler] Handler failed:', e.stack || e)
   } finally {
     if (opts['queque'] && m.text) {
       const quequeIndex = this.msgqueque.indexOf(m.id || m.key.id)
@@ -510,7 +512,7 @@ export async function handler(chatUpdate) {
     try {
       if (!opts['noprint']) await (await import('./lib/print.js')).default(m, this)
     } catch (e) {
-      console.log(m, m.quoted, e)
+      console.error('[handler] Message logger failed:', e.stack || e)
     }
     if (process.env.autoRead) await conn.readMessages([m.key])
     if (process.env.statusview && m.key.remoteJid === 'status@broadcast')

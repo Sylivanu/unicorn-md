@@ -1,3 +1,5 @@
+const presenceTimers = new Map()
+
 export async function before(message, { conn }) {
   try {
     // Check if AUTO_RECORDING is enabled
@@ -19,11 +21,14 @@ export async function before(message, { conn }) {
     await conn.sendPresenceUpdate("composing", message.chat);
 
     // Reset presence to "typing" after 20 seconds
-    setTimeout(() => {
+    clearTimeout(presenceTimers.get(message.chat))
+    const timer = setTimeout(() => {
       conn.sendPresenceUpdate("typing", message.chat).catch(error =>
         console.error('[typing] Failed to reset presence:', error.message)
       )
+      presenceTimers.delete(message.chat)
     }, 20000);
+    presenceTimers.set(message.chat, timer)
   } catch (error) {
     console.error("[typing] Failed:", error.message);
   }

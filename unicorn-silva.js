@@ -316,7 +316,7 @@ console.log(`Using current WhatsApp Web version: ${baileysVersion.join('.')}`)
 const connectionOptions = {
   version: baileysVersion,
   logger: Pino({
-    level: 'fatal',
+    level: 'error',
   }),
   printQRInTerminal: !pairingCode,
   browser: ['chrome (linux)', '', ''],
@@ -552,14 +552,13 @@ async function connectionUpdate(update) {
 }
 
 process.on('uncaughtException', (error) => {
-  console.error(chalk.red('❌ Uncaught Exception:'), error.message)
-  if (process.env.NODE_ENV !== 'production') {
-    console.error(error.stack)
-  }
+  console.error(chalk.red('❌ [fatal] Uncaught Exception:'), error.stack || error)
+  process.exit(1)
 })
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.error(chalk.red('❌ Unhandled Rejection:'), reason)
+process.on('unhandledRejection', (reason) => {
+  console.error(chalk.red('❌ [fatal] Unhandled Rejection:'), reason?.stack || reason)
+  process.exit(1)
 })
 
 let isInit = true
